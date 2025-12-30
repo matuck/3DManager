@@ -25,7 +25,7 @@ use std::fs::{self};
 use std::path::{Path};
 use config::Config;
 use iced::{Element};
-use iced::widget::{Theme};
+use iced::widget::{button, Theme};
 use iced_dialog::{dialog};
 use open;
 #[allow(unused)]
@@ -101,7 +101,11 @@ impl ThreeDPrintManager {
         };
         format!("{screen} - Iced")
     }
-    
+    fn rounded_button(theme: &Theme, status: button::Status) -> button::Style {
+        let mut style = button::primary(theme, status);
+        style.border.radius = iced::border::radius(20);
+        style
+    }
     /**
      * Process Messages
      */

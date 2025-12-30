@@ -14,9 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-use iced::{Length, Theme};
-use iced::widget::{button, text, Container, container, row, column, Column, grid, text_input};
+use env_logger::fmt::style::AnsiColor::White;
+use iced::{Background, Fill, Length, Theme};
+use iced::widget::{button, text, Container, container, row, column, Column, grid, text_input, Text};
 use crate::{Message, ThreeDPrintManager};
 
 impl ThreeDPrintManager {
@@ -28,21 +28,27 @@ impl ThreeDPrintManager {
     fn main_side_panel(&self) -> Container<'_, Message> {
         let mut prog_options = column![]
             .push(
-                button("Settings").on_press(Message::ToSettingsPage).width(Length::FillPortion(4))
+                button(Container::new(Text::new("Settings")).center_x(Fill))
+                    .style(Self::rounded_button)
+                    .on_press(Message::ToSettingsPage)
+                    .width(Length::FillPortion(4))
+
             )
             .push(
-                button("Scan Project Dirs").style(|theme : &Theme, status| {
-                    let palette = theme.extended_palette();
-                    let mut style = iced::widget::button::primary(theme,status);
-                    style.border.radius = iced::border::radius(20);
-                    style.border.color = palette.success.strong.color;
-                    style
-                }).on_press(Message::ScanProjectDirs).width(Length::FillPortion(4))
+                button(Container::new(Text::new("Scan Project Dirs")).center_x(Fill))
+                    .style(Self::rounded_button)
+                    .on_press(Message::ScanProjectDirs)
+                    .width(Length::FillPortion(4))
             ).width(Length::Fill);
         let mut filter_column = column![].width(Length::Fill).height(Length::Fill);
         filter_column = filter_column
             .push(
                 text_input("Search", &self.namefilter)
+                    .style(|theme, status| {
+                        let mut style = text_input::default(theme, status);
+                        style.background = Background::Color(iced::Color::BLACK);
+                        style
+                    })
                     .on_input(Message::FilterChanged)
             );
         let mut side_panel = column![text("Filter").size(50)]
