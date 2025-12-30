@@ -1,0 +1,25 @@
+[package]
+name = "ThreeDPrintManager"
+description = "Manage 3D prints.  Make them searchable and keep notes."
+version = "0.1.0"
+edition = "2024"
+authors = ["Mitch Tuck", "Mitch Tuck <matuck@matuck.com>"]
+publish = false
+readme = "README.md"
+license = "GPL-3"
+license-file = "LICENSE.txt"
+keywords = ["file_manager", "STL"]
+
+[dependencies]
+dirs = "6.0.0"
+iced = { version = "0.14.0", features = ["image"] }
+iced_dialog = "0.14.0"
+rfd = "0.16.0"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "0.9.10"
+log = "0.4.29"
+env_logger = "0.11.8"
+serde_json = "1.0.148"
+rusqlite = "0.38.0"
+rust-embed = "8.9.0"
+open = "5.3.3"
