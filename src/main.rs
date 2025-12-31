@@ -94,7 +94,6 @@ pub struct ThreeDPrintManager {
     namefilter: String,
     project_note_editor: text_editor::Content,
     tag_to_add: String,
-    projectname: String
 }
 
 impl ThreeDPrintManager {
@@ -160,7 +159,6 @@ impl ThreeDPrintManager {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 self.selected_project = self.db_manager.get_project(project.id);
                 self.project_note_editor = text_editor::Content::with_text(project.notes.as_str());
-                self.projectname = project.name;
                 self.screen = Screen::Project;
             }
             Message::FilterChanged(filter) => {
@@ -190,7 +188,7 @@ impl ThreeDPrintManager {
                 self.tag_to_add = "".to_string();
             }
             Message::ProjectNameUpdate(ProjectName) => {
-                self.projectname = ProjectName;
+                self.selected_project.name = ProjectName;
             }
         }
 
@@ -299,7 +297,6 @@ impl Default for ThreeDPrintManager {
             namefilter: "".to_string(),
             project_note_editor: text_editor::Content::with_text(""),
             tag_to_add: "".to_string(),
-            projectname: "".to_string(),
         };
         myself.get_projects();
         return myself;
