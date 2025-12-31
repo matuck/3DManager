@@ -25,7 +25,7 @@ use std::fs::{self};
 use std::path::{Path};
 use config::Config;
 use iced::{Element};
-use iced::widget::{button, Theme};
+use iced::widget::{button, Theme, text_editor, combo_box};
 use iced_dialog::{dialog};
 use open;
 #[allow(unused)]
@@ -77,7 +77,12 @@ pub enum Message {
     SettingsRemoveProjectDirectory(String),
 
     //Project Page
-    OpenDirectory(String)
+    OpenDirectory(String),
+    ProjectNotesEdit(text_editor::Action),
+    RemoveTag(ProjectTag),
+    TagToAddChanged(String),
+    ProjectAddTag,
+    ProjectNameUpdate(String),
 }
 
 pub struct ThreeDPrintManager {
@@ -87,6 +92,9 @@ pub struct ThreeDPrintManager {
     project_list: Vec<Project>,
     selected_project: Option<Project>,
     namefilter: String,
+    project_note_editor: text_editor::Content,
+    tag_to_add: String,
+    projectname: String
 }
 
 impl ThreeDPrintManager {
@@ -151,6 +159,8 @@ impl ThreeDPrintManager {
             Message::SelectProject(mut project) => {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 self.selected_project = Some(self.db_manager.get_project(project.id.unwrap()));
+                self.project_note_editor = text_editor::Content::with_text(project.notes.unwrap().as_str());
+                self.projectname = project.name;
                 self.screen = Screen::Project;
             }
             Message::FilterChanged(filter) => {
@@ -164,6 +174,22 @@ impl ThreeDPrintManager {
                     Ok(()) => info!("Opened '{}' successfully.", directory),
                     Err(err) => error!("An error occurred when opening '{}': {}", directory, err),
                 }
+            }
+            Message::ProjectNotesEdit(project_note) => {
+                self.project_note_editor.perform(project_note);
+            }
+            Message::RemoveTag(tag) => {
+                self.selected_project = Some(self.db_manager.project_remove_tag(self.selected_project.clone().unwrap(), tag));
+            }
+            Message::TagToAddChanged(tag) => {
+                self.tag_to_add = tag;
+            }
+            Message::ProjectAddTag => {
+                self.selected_project = Some(self.db_manager.project_add_tag(self.selected_project.clone().unwrap(), self.tag_to_add.clone()));
+                self.tag_to_add = "".to_string();
+            }
+            Message::ProjectNameUpdate(ProjectName) => {
+                self.projectname = ProjectName;
             }
         }
 
@@ -270,6 +296,9 @@ impl Default for ThreeDPrintManager {
             project_list: vec![],
             selected_project: None,
             namefilter: "".to_string(),
+            project_note_editor: text_editor::Content::with_text(""),
+            tag_to_add: "".to_string(),
+            projectname: "".to_string(),
         };
         myself.get_projects();
         return myself;

@@ -85,7 +85,17 @@ impl DbManager {
                 project_id: row.get(3).unwrap(),
             })
         }).unwrap().into_iter().map(|r| r.unwrap()).collect();
+        let mut tags_stmt = self.connection.prepare(
+            "SELECT t.id, t.tag FROM projects_tags pt LEFT JOIN tags t on pt.tag_id = t.id WHERE pt.project_id = ?1",
+        ).unwrap();
+        let tags :Vec<ProjectTag> = tags_stmt.query_map([id], |row| {
+            Ok(ProjectTag{
+                id: row.get(0).unwrap(),
+                tag: row.get(1).unwrap(),
+            })
+        }).unwrap().into_iter().map(|r| r.unwrap()).collect();
         project.files = Some(files);
+        project.tags = Some(tags);
         project
     }
 
@@ -93,7 +103,7 @@ impl DbManager {
         let mut sql = "select p.* from projects p".to_string();
         //add joins if needed
         if tags.is_some() {
-            sql.push_str(" JOIN project_tag pt ON pt.project_id = o.id JOIN tags t ON t.id = pt.tag_id");
+            sql.push_str(" JOIN projects_tags pt ON pt.project_id = o.id JOIN tags t ON t.id = pt.tag_id");
         }
         if tags.is_some() || path.is_some() || name.is_some() {
             sql.push_str(" WHERE");
@@ -163,5 +173,66 @@ impl DbManager {
         };
         info!("{} added files: {:?}", project.name, files_to_add);
         info!("{} deleted files: {:?}", project.name, files_to_delete);
+    }
+    pub fn project_remove_tag(&self, project: Project, tag: ProjectTag) -> Project {
+        let mut stmt = self.connection.prepare(
+            "DELETE FROM projects_tags WHERE project_id = ?1 AND tag_id = ?2",
+        ).unwrap();
+
+        stmt.execute(params![project.id, tag.id]).unwrap();
+        self.get_project(project.id.unwrap())
+    }
+    pub fn project_add_tag(&self, project: Project, tag: String) -> Project {
+        let mut mytag = self.get_tag_by_tag(tag.clone());
+        if mytag.is_err() {
+            mytag = self.add_tag(tag.clone());
+        }
+        let mytag2 = mytag.unwrap();
+        let mut proj_have_tag_stmt = self.connection.prepare(
+            "SELECT count(*) FROM projects_tags WHERE project_id = ?1 AND tag_id = ?2",
+        ).unwrap();
+        let tagcount :Result<i32> = proj_have_tag_stmt.query_one([project.id.unwrap(), mytag2.id], | row | {
+            Ok(row.get(0)?)
+        });
+        if tagcount.unwrap() == 0 {
+            let mut stmt = self.connection.prepare(
+                "INSERT INTO projects_tags (project_id, tag_id) VALUES (?1, ?2)",
+            ).unwrap();
+            let _ =stmt.execute(params![project.id.unwrap(), mytag2.id]);
+        }
+        self.get_project(project.id.unwrap())
+    }
+
+    pub fn get_tag_by_tag(&self, tag: String) -> Result<ProjectTag> {
+        let mut stmt = self.connection.prepare(
+            "Select id, tag FROM tags WHERE tag = ?1 LIMIT 1",
+        ).unwrap();
+        let mut mytag = stmt.query_one([tag.clone()], |row| {
+            Ok(ProjectTag {
+                id: row.get(0)?,
+                tag: row.get(1)?,
+            })
+        });
+        mytag
+    }
+    pub fn get_tag_by_id(&self, id: i32) -> Result<ProjectTag> {
+        let mut stmt = self.connection.prepare(
+            "Select id, tag FROM tags WHERE id = ?1 LIMIT 1",
+        ).unwrap();
+        let mut mytag = stmt.query_one([id], |row| {
+            Ok(ProjectTag {
+                id: row.get(0)?,
+                tag: row.get(1)?,
+            })
+        });
+        mytag
+    }
+    pub fn add_tag(&self, tag: String) -> Result<ProjectTag> {
+        let mut addstmt = self.connection.prepare(
+            "INSERT INTO tags (tag) VALUES (?1)"
+        ).unwrap();
+        addstmt.execute([tag.clone()]);
+        let last_id = i32::try_from(self.connection.last_insert_rowid()).unwrap();
+        self.get_tag_by_id(last_id)
     }
 }

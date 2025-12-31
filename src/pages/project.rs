@@ -15,11 +15,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use iced::Length;
-use iced::widget::{button, text, Container, row, column, container, scrollable};
+use iced::{Background, Length, Theme};
+use iced::widget::{button, text, Container, row, Row, column, container, scrollable, text_editor, text_input, Space, pick_list, combo_box};
 use crate::models;
 use models::file::ProjectFile;
 use crate::{Message, ThreeDPrintManager};
+use crate::models::project_tag::ProjectTag;
 
 impl ThreeDPrintManager {
     pub fn project(&self) -> Container<'_, Message> {
@@ -27,12 +28,24 @@ impl ThreeDPrintManager {
         let main_content = iced::widget::column![]
             .push(
                 row![
-                        column![text(proj.name.to_string()).size(50)].width(Length::Fill),
-                        column![
-                            button("Open Directory").on_press(Message::OpenDirectory(proj.path)),
-                            button("Back").on_press(Message::ToMainPage)
-                        ]
+                    column![text_input("Project Name", &self.projectname).size(50)
+                        .on_input(Message::ProjectNameUpdate),].width(Length::Fill),
+                    column![
+                        button("Open Directory").on_press(Message::OpenDirectory(proj.path)),
+                        button("Back").on_press(Message::ToMainPage)
+                    ],
                 ].width(Length::Fill)
+            )
+            .push(
+                row![
+                    column![text!("placeholder")].height(Length::Fill).width(Length::Fill).height(Length::Fill),
+                    column![
+                        row![text_editor(&self.project_note_editor)
+                                .placeholder("Type something here...")
+                                .on_action(Message::ProjectNotesEdit)].height(Length::Fill).width(Length::Fill),
+                        row![self.project_view_tags()].width(Length::Fill)
+                    ].height(Length::Fill),
+                ].width(Length::Fill).height(Length::Fill)
             )
             .push(
                 self.project_view_files()
@@ -40,6 +53,38 @@ impl ThreeDPrintManager {
         Container::new(main_content).width(Length::Fill).height(Length::Fill)
     }
 
+    fn project_view_tags(&self) -> Container<'_, Message> {
+        let mut content = column![].width(Length::Fill);
+        content = content.push(text("Tags:").size(30).width(Length::Fill));
+        let mut tag_list = row![].width(Length::Fill);
+       let tags2 = self.selected_project.clone().unwrap().tags.unwrap();
+        for tag in tags2.iter() {
+            tag_list = tag_list.push(
+                button(text(tag.tag.to_string()))
+                    .style(ThreeDPrintManager::button_tag_style)
+                    .padding(3).on_press(Message::RemoveTag(tag.clone()))
+                );
+            tag_list = tag_list.push(Space::new().width(5));
+        }
+        content = content.push(Row::wrap(tag_list));
+        let mut add_tag = row![].width(Length::Fill);
+        add_tag = add_tag.push(
+            text_input("Tag to add", &self.tag_to_add.as_str()).on_input(Message::TagToAddChanged),
+        )
+            .push(
+                button(text("Add Tag")).style(ThreeDPrintManager::rounded_button).on_press(Message::ProjectAddTag)
+            );
+
+        content = content.push(add_tag);
+        Container::new(content).width(Length::Fill)
+    }
+    fn button_tag_style(theme: &Theme, status :button::Status) -> button::Style {
+        let mut style = button::primary(theme, status);
+        let palette = theme.extended_palette();
+        style.border.radius = iced::border::right(20);
+        style.background = Some(palette.success.strong.color.into());
+        style
+    }
     fn project_view_files(&self) -> Container<'_, Message> {
         let mut file_list = column![].width(Length::Fill).height(Length::Fill);
         for file in self.selected_project.clone().unwrap().files.unwrap() {

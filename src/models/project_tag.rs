@@ -14,11 +14,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+use std::fmt::Display;
 use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ProjectTag {
     pub id: i32,
     pub tag: String,
+}
+
+impl Display for ProjectTag {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.tag)
+    }
+}
+impl ProjectTag {
+    fn to_string(&self) -> String {
+        self.tag.clone()
+    }
 }
