@@ -90,7 +90,7 @@ pub struct ThreeDPrintManager {
     config: Config,
     db_manager: DbManager,
     project_list: Vec<Project>,
-    selected_project: Option<Project>,
+    selected_project: Project,
     namefilter: String,
     project_note_editor: text_editor::Content,
     tag_to_add: String,
@@ -123,7 +123,7 @@ impl ThreeDPrintManager {
 
             Message::ToMainPage => {
                 self.get_projects();
-                self.selected_project = None;
+                self.selected_project = Project::default();
                 self.screen = Screen::Main;
             }
             Message::ToSettingsPage => {
@@ -158,8 +158,8 @@ impl ThreeDPrintManager {
             }
             Message::SelectProject(mut project) => {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
-                self.selected_project = Some(self.db_manager.get_project(project.id.unwrap()));
-                self.project_note_editor = text_editor::Content::with_text(project.notes.unwrap().as_str());
+                self.selected_project = self.db_manager.get_project(project.id);
+                self.project_note_editor = text_editor::Content::with_text(project.notes.as_str());
                 self.projectname = project.name;
                 self.screen = Screen::Project;
             }
@@ -177,15 +177,16 @@ impl ThreeDPrintManager {
             }
             Message::ProjectNotesEdit(project_note) => {
                 self.project_note_editor.perform(project_note);
+                self.selected_project.notes = self.project_note_editor.text();
             }
             Message::RemoveTag(tag) => {
-                self.selected_project = Some(self.db_manager.project_remove_tag(self.selected_project.clone().unwrap(), tag));
+                self.selected_project = self.db_manager.project_remove_tag(self.selected_project.clone(), tag);
             }
             Message::TagToAddChanged(tag) => {
                 self.tag_to_add = tag;
             }
             Message::ProjectAddTag => {
-                self.selected_project = Some(self.db_manager.project_add_tag(self.selected_project.clone().unwrap(), self.tag_to_add.clone()));
+                self.selected_project = self.db_manager.project_add_tag(self.selected_project.clone(), self.tag_to_add.clone());
                 self.tag_to_add = "".to_string();
             }
             Message::ProjectNameUpdate(ProjectName) => {
@@ -209,7 +210,7 @@ impl ThreeDPrintManager {
                     self.create_project(
                         entry.file_name().to_str().unwrap().to_string(),
                         entry.path().to_str().unwrap().to_string(),
-                        None
+                        "".to_string()
                     );
                 }
                 debug!("Scanning Project directory {}. The Project Name is {}", entry.path().display(), entry.file_name().display());
@@ -217,14 +218,14 @@ impl ThreeDPrintManager {
         }
     }
 
-    fn create_project (&mut self, project_name: String, project_path: String, project_notes: Option<String>) -> Project {
+    fn create_project (&mut self, project_name: String, project_path: String, project_notes: String) -> Project {
         let new_project = Project {
-            id: None,
+            id: 0,
             path: project_path,
             name: project_name,
             notes: project_notes,
-            tags: None,
-            files: None,
+            tags: vec![],
+            files: vec![],
         };
         self.db_manager.create_project(new_project).unwrap()
     }
@@ -294,7 +295,7 @@ impl Default for ThreeDPrintManager {
             config,
             db_manager: dbmgr,
             project_list: vec![],
-            selected_project: None,
+            selected_project: Project::default(),
             namefilter: "".to_string(),
             project_note_editor: text_editor::Content::with_text(""),
             tag_to_add: "".to_string(),

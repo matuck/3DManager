@@ -24,12 +24,12 @@ use models::{file::ProjectFile, project_tag::ProjectTag};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Project {
-    pub id: Option<i32>,
+    pub id: i32,
     pub name: String,
     pub path: String,
-    pub notes: Option<String>,
-    pub files: Option<Vec<ProjectFile>>,
-    pub tags: Option<Vec<ProjectTag>>,
+    pub notes: String,
+    pub files: Vec<ProjectFile>,
+    pub tags: Vec<ProjectTag>,
 }
 
 impl Project {
@@ -50,5 +50,18 @@ impl Project {
             }
         }
         result
+    }
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        Project {
+            id: 0,
+            name: "".to_string(),
+            path: "".to_string(),
+            notes: "".to_string(),
+            files: vec![],
+            tags: vec![],
+        }
     }
 }

@@ -24,14 +24,13 @@ use crate::models::project_tag::ProjectTag;
 
 impl ThreeDPrintManager {
     pub fn project(&self) -> Container<'_, Message> {
-        let mut proj = self.selected_project.clone().unwrap();
         let main_content = iced::widget::column![]
             .push(
                 row![
-                    column![text_input("Project Name", &self.projectname).size(50)
+                    column![text_input("Project Name", &self.selected_project.name).size(50)
                         .on_input(Message::ProjectNameUpdate),].width(Length::Fill),
                     column![
-                        button("Open Directory").on_press(Message::OpenDirectory(proj.path)),
+                        button("Open Directory").on_press(Message::OpenDirectory(self.selected_project.path.clone())),
                         button("Back").on_press(Message::ToMainPage)
                     ],
                 ].width(Length::Fill)
@@ -57,8 +56,8 @@ impl ThreeDPrintManager {
         let mut content = column![].width(Length::Fill);
         content = content.push(text("Tags:").size(30).width(Length::Fill));
         let mut tag_list = row![].width(Length::Fill);
-       let tags2 = self.selected_project.clone().unwrap().tags.unwrap();
-        for tag in tags2.iter() {
+       //let tags2 = self.selected_project.clone().unwrap().tags.unwrap();
+        for tag in self.selected_project.tags.iter() {
             tag_list = tag_list.push(
                 button(text(tag.tag.to_string()))
                     .style(ThreeDPrintManager::button_tag_style)
@@ -87,15 +86,15 @@ impl ThreeDPrintManager {
     }
     fn project_view_files(&self) -> Container<'_, Message> {
         let mut file_list = column![].width(Length::Fill).height(Length::Fill);
-        for file in self.selected_project.clone().unwrap().files.unwrap() {
-            let mut strip_path= self.selected_project.clone().unwrap().path;
+        for file in self.selected_project.files.iter() {
+            let mut strip_path= self.selected_project.clone().path;
             strip_path.push_str("/");
             let mut thisrow = row![].width(Length::Fill);
             thisrow = thisrow.push(text!("{}", file.path.to_string().replace(strip_path.as_str(), "")).width(Length::Fill));
             if file.path.contains(".3mf") || file.path.contains(".stl") || file.path.contains(".jpg") || file.path.contains(".jpeg") || file.path.contains(".png") {
                 thisrow = thisrow.push(button("Set Default"));
             }
-            thisrow = thisrow.push(button("Open").on_press(Message::OpenDirectory(file.path)));
+            thisrow = thisrow.push(button("Open").on_press(Message::OpenDirectory(file.path.clone())));
             file_list = file_list.push(thisrow)
         }
 

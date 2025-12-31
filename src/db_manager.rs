@@ -66,12 +66,12 @@ impl DbManager {
 
         let mut project = stmt.query_one([id], |row| {
             Ok(Project {
-                id: Some(row.get(0)?),
+                id: row.get(0)?,
                 name: row.get(1)?,
                 path: row.get(2)?,
                 notes: row.get(3)?,
-                tags: None,
-                files: None,
+                tags: vec![],
+                files: vec![],
             })
         }).unwrap();
         let mut files_stmt = self.connection.prepare(
@@ -94,8 +94,8 @@ impl DbManager {
                 tag: row.get(1).unwrap(),
             })
         }).unwrap().into_iter().map(|r| r.unwrap()).collect();
-        project.files = Some(files);
-        project.tags = Some(tags);
+        project.files = files;
+        project.tags = tags;
         project
     }
 
@@ -124,12 +124,12 @@ impl DbManager {
         let mut stmt = self.connection.prepare(sql.as_str(),)?;
         let project_rows = stmt.query_map([], |row| {
             Ok(Project {
-                id: Some(row.get(0)?),
+                id: row.get(0)?,
                 name: row.get(1)?,
                 path: row.get(2)?,
                 notes: row.get(3)?,
-                tags: None,
-                files: None,
+                tags: vec![],
+                files: vec![],
             })
         })?;
 
@@ -139,7 +139,7 @@ impl DbManager {
 
     pub fn create_project(&self, project: Project) -> Result<Project> {
         self.connection.execute(
-            "INSERT INTO projects (name, path, notes) VALUES (?1, ?2, ?3)", params![project.name, project.path, project.notes.unwrap_or("".to_string())],
+            "INSERT INTO projects (name, path, notes) VALUES (?1, ?2, ?3)", params![project.name, project.path, project.notes],
         )?;
         let last_id = i32::try_from(self.connection.last_insert_rowid()).unwrap();
 
@@ -180,7 +180,7 @@ impl DbManager {
         ).unwrap();
 
         stmt.execute(params![project.id, tag.id]).unwrap();
-        self.get_project(project.id.unwrap())
+        self.get_project(project.id)
     }
     pub fn project_add_tag(&self, project: Project, tag: String) -> Project {
         let mut mytag = self.get_tag_by_tag(tag.clone());
@@ -191,16 +191,16 @@ impl DbManager {
         let mut proj_have_tag_stmt = self.connection.prepare(
             "SELECT count(*) FROM projects_tags WHERE project_id = ?1 AND tag_id = ?2",
         ).unwrap();
-        let tagcount :Result<i32> = proj_have_tag_stmt.query_one([project.id.unwrap(), mytag2.id], | row | {
+        let tagcount :Result<i32> = proj_have_tag_stmt.query_one([project.id, mytag2.id], | row | {
             Ok(row.get(0)?)
         });
         if tagcount.unwrap() == 0 {
             let mut stmt = self.connection.prepare(
                 "INSERT INTO projects_tags (project_id, tag_id) VALUES (?1, ?2)",
             ).unwrap();
-            let _ =stmt.execute(params![project.id.unwrap(), mytag2.id]);
+            let _ =stmt.execute(params![project.id, mytag2.id]);
         }
-        self.get_project(project.id.unwrap())
+        self.get_project(project.id)
     }
 
     pub fn get_tag_by_tag(&self, tag: String) -> Result<ProjectTag> {
