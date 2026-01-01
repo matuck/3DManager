@@ -20,6 +20,7 @@ use log::debug;
 use crate::models;
 use serde::{Serialize, Deserialize};
 use models::{file::ProjectFile, project_tag::ProjectTag, project_source::ProjectSource};
+use regex::Regex;
 
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -54,6 +55,20 @@ impl Project {
     }
 }
 
+impl Project {
+    pub fn get_default_or_first_image_file(&self) -> Option<ProjectFile> {
+        let default_files :Vec<ProjectFile>= self.files.clone().into_iter().filter(|file| file.default).collect();
+        if default_files.len() > 0 {
+            return Some(default_files.first().unwrap().clone());
+        }
+        let regex = Regex::new(r"((?i)\.png|\.jpg|\.jpeg|\.gif|\.stl|\.3mf)").unwrap();
+        let filtered_files :Vec<ProjectFile> = self.files.clone().into_iter().filter(|file| regex.is_match(file.path.as_str())).collect();
+        if filtered_files.len() > 0 {
+            return Some(filtered_files.first().unwrap().clone());
+        }
+        None
+    }
+}
 impl Default for Project {
     fn default() -> Self {
         Project {

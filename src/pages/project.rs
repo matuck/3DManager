@@ -16,7 +16,7 @@
  */
 
 use iced::{Length, Theme};
-use iced::widget::{button, text, Container, row, Row, column, scrollable, text_editor, text_input, Space};
+use iced::widget::{button, text, Container, row, Row, column, scrollable, text_editor, text_input, Space, image};
 use crate::{Message, ThreeDPrintManager};
 
 impl ThreeDPrintManager {
@@ -34,7 +34,8 @@ impl ThreeDPrintManager {
             )
             .push(
                 row![
-                    column![text!("placeholder")].height(Length::Fill).width(Length::Fill).height(Length::Fill),
+                    column![image(self.selected_image_project_file.clone().unwrap().get_image_path())].height(Length::Fill).width(Length::Fill).height(Length::Fill),
+                    //column![text!("placeholder")].height(Length::Fill).width(Length::Fill).height(Length::Fill),
                     column![
                         row![text_editor(&self.project_note_editor)
                                 .placeholder("Type something here...")

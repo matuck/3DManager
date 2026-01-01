@@ -33,6 +33,7 @@ use log::{error, warn, info, debug, trace};
 
 use env_logger::Env;
 use crate::db_manager::DbManager;
+use crate::models::file::ProjectFile;
 
 pub fn main() -> iced::Result {
     let mut default_log_level = "error";
@@ -96,7 +97,9 @@ pub struct ThreeDPrintManager {
     project_note_editor: text_editor::Content,
     tag_to_add: String,
     tag_list: Vec<ProjectTag>,
-    filter_tags: Vec<ProjectTag>
+    filter_tags: Vec<ProjectTag>,
+    selected_project_file: Option<ProjectFile>,
+    selected_image_project_file: Option<ProjectFile>,
 }
 
 impl ThreeDPrintManager {
@@ -162,6 +165,8 @@ impl ThreeDPrintManager {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 self.selected_project = self.db_manager.get_project(project.id);
                 self.project_note_editor = text_editor::Content::with_text(project.notes.as_str());
+                self.selected_project_file = None;
+                self.selected_image_project_file = project.get_default_or_first_image_file();
                 self.screen = Screen::Project;
             }
             Message::FilterChanged(filter) => {
@@ -316,6 +321,8 @@ impl Default for ThreeDPrintManager {
             tag_to_add: "".to_string(),
             tag_list,
             filter_tags: Vec::new(),
+            selected_project_file: None,
+            selected_image_project_file: None,
         };
         myself.get_projects();
         return myself;
