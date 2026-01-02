@@ -1,4 +1,4 @@
-ThreeDPrintManager
+ThreeDManager
 ==================
 
 Placeholder for now
