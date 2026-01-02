@@ -15,11 +15,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use iced::{Background, Fill, Length, Pixels};
-use iced::widget::{button, text, container, Container, row, column, grid, text_input, Text, scrollable, image};
+use iced::{Background, Fill, Length};
+use iced::widget::{button, text, container, Container, row, column, text_input, Text, scrollable, image};
 use iced::alignment::{Horizontal};
 use iced::widget::text::Alignment;
-use rusqlite::fallible_iterator::FallibleIterator;
 use crate::{Message, ThreeDPrintManager};
 
 impl ThreeDPrintManager {
@@ -83,7 +82,7 @@ impl ThreeDPrintManager {
         for project in &self.project_list {
             let project_file = project.get_default_or_first_image_file();
             let imagepath = match project_file {
-                Some(project_file) => project_file.get_image_path(),
+                Some(project_file) => project_file.get_image_path(self.stl_thumb.clone()),
                 None => "".to_string()
             };
 

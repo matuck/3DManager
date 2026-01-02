@@ -112,7 +112,7 @@ impl DbManager {
         sql.push_str(" ORDER BY p.name");
         debug!("{}", sql);
         let mut stmt = self.connection.prepare(sql.as_str(),).unwrap();
-        let mut projects :Vec<Project> = stmt.query_map([], |row| {
+        let projects :Vec<Project> = stmt.query_map([], |row| {
             Ok(Project {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -169,7 +169,7 @@ impl DbManager {
     }
 
     pub fn project_get_sources(&self, project_id: i32) -> Vec<ProjectSource> {
-        let mut sources_stmt = self.connection.prepare(
+        let sources_stmt = self.connection.prepare(
             "SELECT id, url, project_id FROM project_sources WHERE project_id = ?1"
         );
         let sources :Vec<ProjectSource> = sources_stmt.unwrap().query_map([project_id], |row| {

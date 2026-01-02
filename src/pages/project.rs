@@ -34,7 +34,7 @@ impl ThreeDPrintManager {
             )
             .push(
                 row![
-                    column![image(self.selected_image_project_file.clone().unwrap().get_image_path())].height(Length::Fill).width(Length::Fill).height(Length::Fill),
+                    column![image(self.selected_image_project_file.clone().unwrap().get_image_path(self.stl_thumb.clone()))].height(Length::Fill).width(Length::Fill).height(Length::Fill),
                     //column![text!("placeholder")].height(Length::Fill).width(Length::Fill).height(Length::Fill),
                     column![
                         row![text_editor(&self.project_note_editor)

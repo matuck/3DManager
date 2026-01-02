@@ -22,12 +22,13 @@ mod pages;
 
 use models::{project::Project, project_tag::ProjectTag};
 use std::fs::{self};
-use std::path::{Path};
+use std::path::{Path, PathBuf};
 use config::Config;
 use iced::{Element};
 use iced::widget::{button, Theme, text_editor};
 use iced_dialog::{dialog};
 use open;
+use which::which;
 #[allow(unused)]
 use log::{error, warn, info, debug, trace};
 
@@ -61,6 +62,8 @@ enum Screen {
 
 #[derive(Debug, Clone)]
 pub enum Message {
+
+    CloseApplication,
     //Page Switching Messages
     ToMainPage,
     ToSettingsPage,
@@ -100,6 +103,7 @@ pub struct ThreeDPrintManager {
     filter_tags: Vec<ProjectTag>,
     selected_project_file: Option<ProjectFile>,
     selected_image_project_file: Option<ProjectFile>,
+    stl_thumb: String,
 }
 
 impl ThreeDPrintManager {
@@ -124,6 +128,10 @@ impl ThreeDPrintManager {
      */
     fn update(&mut self, message: Message) {
         match message {
+            Message::CloseApplication => {
+                error!("You need to have stl-thumb installed first.");
+                std::process::exit(1);
+            }
             //Page Switching Messages
 
             Message::ToMainPage => {
@@ -164,9 +172,8 @@ impl ThreeDPrintManager {
             Message::SelectProject(mut project) => {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 self.selected_project = self.db_manager.get_project(project.id);
-                self.project_note_editor = text_editor::Content::with_text(project.notes.as_str());
-                self.selected_project_file = None;
-                self.selected_image_project_file = project.get_default_or_first_image_file();
+                self.project_note_editor = text_editor::Content::with_text(self.selected_project.notes.as_str());
+                self.selected_image_project_file = self.selected_project.get_default_or_first_image_file();
                 self.screen = Screen::Project;
             }
             Message::FilterChanged(filter) => {
@@ -221,11 +228,12 @@ impl ThreeDPrintManager {
             let entry = entry.unwrap();
             if entry.file_type().unwrap().is_dir() {
                 if !self.does_project_with_path_exist(entry.path().to_str().unwrap().to_string()) {
-                    self.create_project(
+                    let mut project  = self.create_project(
                         entry.file_name().to_str().unwrap().to_string(),
                         entry.path().to_str().unwrap().to_string(),
                         "".to_string()
                     );
+                    self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 }
                 debug!("Scanning Project directory {}. The Project Name is {}", entry.path().display(), entry.file_name().display());
             }
@@ -276,13 +284,23 @@ impl ThreeDPrintManager {
         }
         match self.screen {
             Screen::Main => {
-                let dialog_content = "Please add print project directories in the settings page.";
-                dialog(self.config.clone().print_path_empty_or_none(), Element::new(self.main_view()).explain(color), dialog_content)
-                    .title("Save")
-                    .push_button(iced_dialog::button("OK", Message::ToSettingsPage))
-                    .width(350)
-                    .height(234)
-                    .into()
+                if self.stl_thumb.eq("") {
+                    let dialog_content = "Please install stl-thumb first";
+                    dialog(true, Element::new(self.main_view()).explain(color), dialog_content)
+                        .title("Save")
+                        .push_button(iced_dialog::button("OK", Message::CloseApplication))
+                        .width(350)
+                        .height(234)
+                        .into()
+                } else {
+                    let dialog_content = "Please add print project directories in the settings page.";
+                    dialog(self.config.clone().print_path_empty_or_none(), Element::new(self.main_view()).explain(color), dialog_content)
+                        .title("Save")
+                        .push_button(iced_dialog::button("OK", Message::ToSettingsPage))
+                        .width(350)
+                        .height(234)
+                        .into()
+                }
             },
             Screen::Project => {
                 Element::new(self.project()).explain(color)
@@ -303,6 +321,7 @@ impl ThreeDPrintManager {
 }
 impl Default for ThreeDPrintManager {
     fn default() -> Self {
+        let stl_thumb = which("stl-thumb").unwrap_or(PathBuf::default()).to_str().unwrap_or("").to_string();
         info!("ThreeDPrintManager Started");
         let config = Config::default();
         let mut dbfile = Config::get_config_dir().unwrap();
@@ -323,6 +342,7 @@ impl Default for ThreeDPrintManager {
             filter_tags: Vec::new(),
             selected_project_file: None,
             selected_image_project_file: None,
+            stl_thumb
         };
         myself.get_projects();
         return myself;

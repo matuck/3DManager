@@ -16,11 +16,10 @@
  */
 use std::{fs, path};
 use serde::{Serialize, Deserialize};
-extern crate stl_thumb;
-use stl_thumb::config::{AAMethod, Config as StlThumbConfig};
 use regex::Regex;
 use path::{PathBuf, Path};
 use fs::create_dir_all;
+use std::process::Stdio;
 #[allow(unused)]
 use log::{error, warn, info, debug, trace};
 
@@ -34,12 +33,12 @@ pub struct ProjectFile {
 }
 
 impl ProjectFile {
-    pub fn get_image_path(&self) -> String {
+    pub fn get_image_path(&self, stl_thumb_path: String) -> String {
         if self.is_image_type() {
             return self.path.clone();
         }
         if self.can_generate_to_image() {
-            return self.get_generated_image_path();
+            return self.get_generated_image_path(stl_thumb_path);
         }
         "".to_string()
     }
@@ -60,25 +59,36 @@ impl ProjectFile {
         false
     }
 
-    pub fn get_generated_image_path(&self) -> String {
+    pub fn get_generated_image_path(&self, stl_thumb_path: String) -> String {
+        //get the path to file source
         let mut path = PathBuf::from(&self.path.clone());
         let filename = path.file_name().unwrap().to_str().unwrap().to_string();
+        //get the project directory
         path = path.parent().unwrap().to_path_buf();
+        //set the generated directory
         path.push(".3DPrintManager");
+        //ensure generated directory exists
         create_dir_all(&path).unwrap();
-        let mut stl_thumb_config = StlThumbConfig::default();
-        stl_thumb_config.visible = false;
-        stl_thumb_config.verbosity = 3;
-        stl_thumb_config.model_filename=self.path.clone();
-        stl_thumb_config.img_filename=format!("{}/{}{}", path.to_str().unwrap(), filename, ".png");
-        let filepath = Path::new(stl_thumb_config.img_filename.as_str());
-        if !filepath.exists() {
-            info!("Creating file {:?}", stl_thumb_config.img_filename);
-            if let Err(e) = stl_thumb::render_to_file(&stl_thumb_config) {
-                error!("Application error: {}", e);
-                return "".to_string();
+        let image_file = format!("{}/{}{}", path.to_str().unwrap(), filename, ".png");
+        if !Path::new(&image_file).exists() {
+            info!("Creating image file {}", image_file);
+            let process = std::process::Command::new(stl_thumb_path)
+                .args(&[self.path.clone(), image_file.clone()])
+                .stderr(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn().unwrap();
+
+            let output = process.wait_with_output().unwrap();
+
+            if output.status.success() {
+                return image_file
+            } else {
+                error!("Error generating image file {}. stl_thumb error  is {}", image_file, String::from_utf8(output.stderr).unwrap_or("".to_string()));
             }
+        } else {
+            return image_file;
         }
-        stl_thumb_config.img_filename
+
+        "".to_string()
     }
 }
