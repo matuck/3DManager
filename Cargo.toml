@@ -9,6 +9,10 @@ readme = "README.md"
 license = "GPL-3"
 keywords = ["file_manager", "STL"]
 
+[[bin]]
+name = "3DManager"
+path = "src/main.rs"
+
 [dependencies]
 dirs = "6.0.0"
 iced = { version = "0.14.0", features = ["image"] }

@@ -207,6 +207,7 @@ impl ThreeDManager {
                 self.tag_to_add = tag;
             }
             Message::ProjectAddTag => {
+                self.selected_project = self.db_manager.project_add_tag(self.selected_project.clone(), self.tag_to_add.clone());
                 self.tag_to_add = "".to_string();
             }
             Message::ProjectNameUpdate(project_name) => {
@@ -321,10 +322,10 @@ impl ThreeDManager {
 impl Default for ThreeDManager {
     fn default() -> Self {
         let stl_thumb = which("stl-thumb").unwrap_or(PathBuf::default()).to_str().unwrap_or("").to_string();
-        info!("ThreeDPrintManager Started");
+        info!("ThreeDManager Started");
         let config = Config::default();
         let mut dbfile = Config::get_config_dir().unwrap();
-        dbfile.push("3DPrintManager.db");
+        dbfile.push("3DManager.db");
         let dbmgr = db_manager::DbManager::new(dbfile.to_str().unwrap().to_string());
         dbmgr.run_migration();
         let tag_list = dbmgr.get_tag_list();
