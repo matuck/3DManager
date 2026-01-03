@@ -52,6 +52,11 @@ impl ProjectFile {
         regex.is_match(&self.path)
     }
 
+    pub fn is_text_type(&self) -> bool {
+        let regex = Regex::new(r"((?i)\.txt|\.md|\.json|\.toml|\.yaml|\.yml|\.ini)").unwrap();
+        regex.is_match(&self.path)
+    }
+
     pub fn is_image_or_can_generate_to_image(&self) -> bool {
         if self.is_image_type() || self.can_generate_to_image() {
             return true;

@@ -35,7 +35,6 @@ impl ThreeDManager {
             .push(
                 row![
                     column![image(self.selected_image_project_file.clone().unwrap().get_image_path(self.stl_thumb.clone()))].height(Length::Fill).width(Length::Fill).height(Length::Fill),
-                    //column![text!("placeholder")].height(Length::Fill).width(Length::Fill).height(Length::Fill),
                     column![
                         row![text_editor(&self.project_note_editor)
                                 .placeholder("Type something here...")
@@ -116,7 +115,12 @@ impl ThreeDManager {
             thisrow = thisrow.push(button("Open").on_press(Message::OpenDirectory(file.path.clone())));
             file_list = file_list.push(thisrow)
         }
-
-        Container::new(scrollable(file_list)).width(Length::Fill).height(Length::Fill)
+        let file_note_editor  = column![
+                text("File Notes:").size(30).width(Length::Fill),
+                text_editor(&self.project_file_note_editor)
+                    .placeholder("Type something here...")
+                    .on_action(Message::ProjectFileNotesEdit)
+        ].height(Length::Fill).width(Length::Fill);
+        Container::new(row![scrollable(file_list),file_note_editor]).width(Length::Fill).height(Length::Fill)
     }
 }
