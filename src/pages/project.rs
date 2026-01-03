@@ -16,6 +16,7 @@
  */
 
 use iced::{Length, Theme};
+use iced::alignment::Horizontal;
 use iced::widget::{button, text, Container, row, Row, column, scrollable, text_editor, text_input, Space, image};
 use crate::{Message, ThreeDManager};
 
@@ -35,7 +36,6 @@ impl ThreeDManager {
             .push(
                 row![
                     column![image(self.selected_image_project_file.clone().unwrap().get_image_path(self.stl_thumb.clone()))].height(Length::Fill).width(Length::Fill).height(Length::Fill),
-                    //column![text!("placeholder")].height(Length::Fill).width(Length::Fill).height(Length::Fill),
                     column![
                         row![text_editor(&self.project_note_editor)
                                 .placeholder("Type something here...")
@@ -91,16 +91,51 @@ impl ThreeDManager {
             thisrow = thisrow.push(
                 button(
                     text!("{}", file.path.to_string().replace(strip_path.as_str(), "")))
-                    .style(button::text)
+                    .style(|theme :&Theme,status|{
+                        let palette = theme.extended_palette();
+                        let mut style = button::text(theme, status);
+                        match self.selected_project_file.clone() {
+                            Some(selected_file) => {
+                                if file.id == selected_file.id {
+                                    style.background = Some(palette.secondary.strong.color.into());
+                                    style.text_color = palette.primary.base.text;
+                                }
+                            }
+                            None => {}
+                        }
+
+                        style
+                    })
                     .on_press(Message::SelectFile(file.clone()))
                     .width(Length::Fill));
-            if file.path.contains(".3mf") || file.path.contains(".stl") || file.path.contains(".jpg") || file.path.contains(".jpeg") || file.path.contains(".png") {
-                thisrow = thisrow.push(button("Set Default"));
-            }
-            thisrow = thisrow.push(button("Open").on_press(Message::OpenDirectory(file.path.clone())));
             file_list = file_list.push(thisrow)
         }
 
-        Container::new(scrollable(file_list)).width(Length::Fill).height(Length::Fill)
+        let mut file_actions_buttons = row![];
+        //open for selected file
+        file_actions_buttons = file_actions_buttons.push(
+            button(text("Open").align_x(Horizontal::Center))
+                .on_press(Message::OpenDirectory(self.selected_project_file.clone().unwrap().path))
+                .style(Self::rounded_button)
+        );
+        if self.selected_project_file.clone().unwrap().is_image_or_can_generate_to_image() {
+            file_actions_buttons = file_actions_buttons.push(
+                button(text("Set Default").align_x(Horizontal::Center))
+                    .on_press(Message::SetFileDefault)
+                    .style(Self::rounded_button)
+            );
+        }
+        let file_list_container = column![
+            row![scrollable(file_list)],
+            file_actions_buttons.wrap()
+        ].width(Length::Fill).height(Length::Fill).align_x(Horizontal::Center);
+        let file_note_editor  = column![
+                text("File Notes:").size(30).width(Length::Fill),
+                text_editor(&self.project_file_note_editor)
+                    .placeholder("Type something here...")
+                    .on_action(Message::ProjectFileNotesEdit).height(Length::Fill),
+                button(text("Save File Notes").align_x(Horizontal::Center).width(Length::Fill)).on_press(Message::ProjectFileSave).width(Length::Fill).style(Self::rounded_button),
+        ].height(Length::Fill).width(Length::Fill).align_x(Horizontal::Center);
+        Container::new(row![file_list_container,file_note_editor]).width(Length::Fill).height(Length::Fill)
     }
 }

@@ -21,7 +21,8 @@ mod db_manager;
 mod pages;
 
 use models::{project::Project, project_tag::ProjectTag};
-use std::fs::{self};
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use config::Config;
 use iced::{Element};
@@ -84,11 +85,14 @@ pub enum Message {
     //Project Page
     OpenDirectory(String),
     ProjectNotesEdit(text_editor::Action),
+    ProjectFileNotesEdit(text_editor::Action),
     RemoveTag(ProjectTag),
     TagToAddChanged(String),
     ProjectAddTag,
     ProjectNameUpdate(String),
     SelectFile(ProjectFile),
+    ProjectFileSave,
+    SetFileDefault,
 }
 
 pub struct ThreeDManager {
@@ -99,6 +103,7 @@ pub struct ThreeDManager {
     selected_project: Project,
     namefilter: String,
     project_note_editor: text_editor::Content,
+    project_file_note_editor: text_editor::Content,
     tag_to_add: String,
     tag_list: Vec<ProjectTag>,
     filter_tags: Vec<ProjectTag>,
@@ -174,6 +179,8 @@ impl ThreeDManager {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 self.selected_project = self.db_manager.get_project(project.id);
                 self.project_note_editor = text_editor::Content::with_text(self.selected_project.notes.as_str());
+                self.selected_project_file = self.selected_project.get_default_or_first_image_file();
+                self.update_project_file_note_editor_on_selection();
                 self.selected_image_project_file = self.selected_project.get_default_or_first_image_file();
                 self.screen = Screen::Project;
             }
@@ -201,6 +208,31 @@ impl ThreeDManager {
                 self.project_note_editor.perform(project_note);
                 self.selected_project.notes = self.project_note_editor.text();
             }
+            Message::ProjectFileNotesEdit(project_file_note) => {
+                self.project_file_note_editor.perform(project_file_note);
+            }
+            Message::ProjectFileSave => {
+                let mut current_project_file = self.selected_project_file.clone().unwrap();
+                let file_note = self.project_file_note_editor.text();
+                if current_project_file.is_text_type() {
+                    let mut file = OpenOptions::new()
+                        .write(true)
+                        .truncate(true)
+                        .open(current_project_file.path).unwrap();
+                    let _ = file.write_all(file_note.as_bytes());
+                } else {
+                    current_project_file.notes = Some(file_note);
+                    let new_project_file = self.db_manager.update_project_file(current_project_file);
+                    self.selected_project = self.db_manager.get_project(new_project_file.project_id);
+                    self.selected_project_file = Some(new_project_file);
+                    self.update_project_file_note_editor_on_selection();
+                }
+            }
+            Message::SetFileDefault => {
+                let mut file = self.selected_project_file.clone().unwrap();
+                file.default = true;
+                self.selected_project_file = Some(self.db_manager.update_project_file(file));
+            }
             Message::RemoveTag(tag) => {
                 self.selected_project = self.db_manager.project_remove_tag(self.selected_project.clone(), tag);
             }
@@ -216,12 +248,26 @@ impl ThreeDManager {
             }
             Message::SelectFile(file) => {
                 self.selected_project_file = Some(file.clone());
+                self.update_project_file_note_editor_on_selection();
                 if file.is_image_or_can_generate_to_image() {
                     self.selected_image_project_file = Some(file.clone());
                 }
             }
         }
 
+    }
+    pub fn update_project_file_note_editor_on_selection(&mut self) {
+        self.project_file_note_editor = match self.selected_project_file.clone() {
+            Some(project_file) => {
+                if project_file.is_text_type() {
+                    let file_contents = fs::read_to_string(&project_file.path).unwrap_or("".to_string());
+                    text_editor::Content::with_text(file_contents.as_str())
+                } else {
+                    text_editor::Content::with_text(project_file.notes.unwrap_or("".to_string()).as_str())
+                }
+            },
+            None => text_editor::Content::with_text("")
+        };
     }
     fn scan_project_dirs(&mut self) {
         if self.config.print_paths.is_none() { return ()}
@@ -344,6 +390,7 @@ impl Default for ThreeDManager {
             selected_project: Project::default(),
             namefilter: "".to_string(),
             project_note_editor: text_editor::Content::with_text(""),
+            project_file_note_editor: text_editor::Content::with_text(""),
             tag_to_add: "".to_string(),
             tag_list,
             filter_tags: Vec::new(),
