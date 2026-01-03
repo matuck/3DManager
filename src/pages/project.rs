@@ -91,7 +91,23 @@ impl ThreeDManager {
             thisrow = thisrow.push(
                 button(
                     text!("{}", file.path.to_string().replace(strip_path.as_str(), "")))
-                    .style(button::text)
+                    .style(|theme :&Theme,status|{
+                        let palette = theme.extended_palette();
+                        let mut style = button::text(theme, status);
+                        println!("{:?}", style);
+                        //style.border.radius = iced::border::radius(20);
+                        match self.selected_project_file.clone() {
+                            Some(selected_file) => {
+                                if file.id == selected_file.id {
+                                    style.background = Some(palette.secondary.strong.color.into());
+                                    style.text_color = palette.primary.base.text;
+                                }
+                            }
+                            None => {}
+                        }
+
+                        style
+                    })
                     .on_press(Message::SelectFile(file.clone()))
                     .width(Length::Fill));
             if file.path.contains(".3mf") || file.path.contains(".stl") || file.path.contains(".jpg") || file.path.contains(".jpeg") || file.path.contains(".png") {

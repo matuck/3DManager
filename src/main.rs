@@ -174,6 +174,7 @@ impl ThreeDManager {
                 self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
                 self.selected_project = self.db_manager.get_project(project.id);
                 self.project_note_editor = text_editor::Content::with_text(self.selected_project.notes.as_str());
+                self.selected_project_file = self.selected_project.get_default_or_first_image_file();
                 self.selected_image_project_file = self.selected_project.get_default_or_first_image_file();
                 self.screen = Screen::Project;
             }
