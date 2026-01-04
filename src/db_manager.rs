@@ -18,6 +18,7 @@ use rusqlite::{params, Connection, Result};
 use rust_embed::{Embed};
 #[allow(unused)]
 use log::{error, warn, info, debug, trace};
+use serde::{Deserialize, Serialize};
 use crate::models;
 use models::project::Project;
 use models::project_tag::ProjectTag;
