@@ -34,7 +34,7 @@ use crate::pages::{main_view, project, settings};
 pub fn main() -> iced::Result {
     let mut default_log_level = "error";
     if cfg!(debug_assertions) {
-        default_log_level = "error,ThreeDPrintManager=info";
+        default_log_level = "error,3DManager=info";
     }
     let env = Env::default()
         .filter_or("RUST_LOG", default_log_level)
