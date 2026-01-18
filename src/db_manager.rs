@@ -14,20 +14,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection};
 use rust_embed::{Embed};
 #[allow(unused)]
 use log::{error, warn, info, debug, trace};
-use crate::models;
-use models::project::Project;
-use models::project_tag::ProjectTag;
-use models::file::ProjectFile;
-use crate::models::project_source::ProjectSource;
-use crate::repository;
-use repository::project_repository::ProjectRepository;
-use crate::repository::project_file_repository::ProjectFileRepository;
-use crate::repository::project_source_repository::ProjectSourceRepository;
-use crate::repository::project_tag_repository::ProjectTagRepository;
 
 pub struct DbManager {
     connection: Connection,
@@ -44,9 +34,7 @@ impl DbManager {
             "create table if not exists _migrations (version VARCHAR(50) NOT NULL, run_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)",
             params![]
         );
-        let x = DbManager { connection: conn };
-        ProjectRepository::new(&x.connection);
-        x
+        DbManager { connection: conn }
     }
     pub fn run_migration(&self) {
         let current_version = self.connection.query_one("SELECT * FROM _migrations ORDER BY version DESC LIMIT 1", params![], |row| {

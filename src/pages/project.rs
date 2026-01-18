@@ -16,11 +16,10 @@
  */
 use std::fs::{self, OpenOptions};
 use std::io::Write;
-use iced::{Element, Error, Length, Theme};
+use iced::{Element, Length, Theme};
 use iced::alignment::Horizontal;
 use iced::widget::{button, text, Container, row, Row, column, scrollable, text_editor, text_input, Space, image};
 use log::{error, info};
-use rusqlite::fallible_iterator::FallibleIterator;
 use crate::{ThreeDManager};
 use crate::db_manager::DbManager;
 use crate::models::file::ProjectFile;
@@ -135,16 +134,17 @@ impl ProjectPage {
             }
             Message::ProjectAddTag => {
                 let project_tag_repository = ProjectTagRepository::new(self.db_manager.get_connection());
-                let add_tag = project_tag_repository.get_tag_by_tag(self.tag_to_add.clone());
-                if add_tag.is_err() {
-                    let add_tag :Result<ProjectTag, Error> = Ok(project_tag_repository.create(self.tag_to_add.clone()));
-                }
-                let add_tag = add_tag.unwrap();
+                let  add_tag = project_tag_repository.get_tag_by_tag(self.tag_to_add.clone())
+                    .unwrap_or_else(|_| {
+                        project_tag_repository.create(self.tag_to_add.clone())
+                    });
+
                 let project_tag_filtered_list :Vec<ProjectTag> = project_tag_repository.get_tags_by_project(self.selected_project.clone()).into_iter().filter(|item| add_tag.id == item.id).collect();
 
                 if project_tag_filtered_list.is_empty() {
                     ProjectRepository::new(self.db_manager.get_connection()).add_tag(self.selected_project.clone(), add_tag);
                 }
+                self.selected_project = ProjectRepository::new(self.db_manager.get_connection()).get_project(self.selected_project.id);
                 self.tag_to_add = "".to_string();
             }
             Message::ProjectNameUpdate(project_name) => {
