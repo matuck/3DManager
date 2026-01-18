@@ -16,15 +16,21 @@
  */
 use std::fs::{self, OpenOptions};
 use std::io::Write;
-use iced::{Element, Length, Theme};
+use iced::{Element, Error, Length, Theme};
 use iced::alignment::Horizontal;
 use iced::widget::{button, text, Container, row, Row, column, scrollable, text_editor, text_input, Space, image};
 use log::{error, info};
+use rusqlite::fallible_iterator::FallibleIterator;
 use crate::{ThreeDManager};
 use crate::db_manager::DbManager;
 use crate::models::file::ProjectFile;
 use crate::models::project::Project;
+use crate::models::project_source::ProjectSource;
 use crate::models::project_tag::ProjectTag;
+use crate::repository::project_file_repository::ProjectFileRepository;
+use crate::repository::project_repository::ProjectRepository;
+use crate::repository::project_source_repository::ProjectSourceRepository;
+use crate::repository::project_tag_repository::ProjectTagRepository;
 
 pub struct ProjectPage {
     stl_thumb: String,
@@ -110,8 +116,8 @@ impl ProjectPage {
                     let _ = file.write_all(file_note.as_bytes());
                 } else {
                     current_project_file.notes = Some(file_note);
-                    let new_project_file = self.db_manager.update_project_file(current_project_file);
-                    self.selected_project = self.db_manager.get_project(new_project_file.project_id);
+                    let new_project_file = ProjectFileRepository::new(self.db_manager.get_connection()).save(current_project_file);
+                    self.selected_project = ProjectRepository::new(self.db_manager.get_connection()).get_project(new_project_file.project_id);
                     self.selected_project_file = Some(new_project_file);
                     self.update_project_file_note_editor_on_selection();
                 }
@@ -119,16 +125,26 @@ impl ProjectPage {
             Message::SetFileDefault => {
                 let mut file = self.selected_project_file.clone().unwrap();
                 file.default = true;
-                self.selected_project_file = Some(self.db_manager.update_project_file(file));
+                self.selected_project_file = Some(ProjectFileRepository::new(self.db_manager.get_connection()).save(file));
             }
             Message::RemoveTag(tag) => {
-                self.selected_project = self.db_manager.project_remove_tag(self.selected_project.clone(), tag);
+                self.selected_project = ProjectRepository::new(self.db_manager.get_connection()).remove_tag(self.selected_project.clone(), tag)
             }
             Message::TagToAddChanged(tag) => {
                 self.tag_to_add = tag;
             }
             Message::ProjectAddTag => {
-                self.selected_project = self.db_manager.project_add_tag(self.selected_project.clone(), self.tag_to_add.clone());
+                let project_tag_repository = ProjectTagRepository::new(self.db_manager.get_connection());
+                let add_tag = project_tag_repository.get_tag_by_tag(self.tag_to_add.clone());
+                if add_tag.is_err() {
+                    let add_tag :Result<ProjectTag, Error> = Ok(project_tag_repository.create(self.tag_to_add.clone()));
+                }
+                let add_tag = add_tag.unwrap();
+                let project_tag_filtered_list :Vec<ProjectTag> = project_tag_repository.get_tags_by_project(self.selected_project.clone()).into_iter().filter(|item| add_tag.id == item.id).collect();
+
+                if project_tag_filtered_list.is_empty() {
+                    ProjectRepository::new(self.db_manager.get_connection()).add_tag(self.selected_project.clone(), add_tag);
+                }
                 self.tag_to_add = "".to_string();
             }
             Message::ProjectNameUpdate(project_name) => {
@@ -142,7 +158,7 @@ impl ProjectPage {
                 }
             }
             Message::ProjectSave => {
-                self.db_manager.update_project(self.selected_project.clone());
+                ProjectRepository::new(self.db_manager.get_connection()).save(self.selected_project.clone());
             }
             Message::SourceNameUpdate(source_name) => {
                 self.source_name = source_name;
@@ -151,7 +167,8 @@ impl ProjectPage {
                 self.source_url = source_url;
             }
             Message::AddSource => {
-                self.selected_project = self.db_manager.add_source(self.selected_project.clone(), self.source_name.clone(), self.source_url.clone());
+                ProjectSourceRepository::new(self.db_manager.get_connection()).create(ProjectSource::new(self.source_name.clone(), self.source_url.clone(), self.selected_project.clone()));
+                self.selected_project = ProjectRepository::new(self.db_manager.get_connection()).get_project(self.selected_project.id);
                 self.source_name = "".to_string();
                 self.source_url = "".to_string();
             }

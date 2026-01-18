@@ -27,7 +27,10 @@ use crate::config::Config;
 use crate::db_manager::DbManager;
 use crate::models::project::Project;
 use crate::models::project_tag::ProjectTag;
-
+use crate::models::file::ProjectFile;
+use crate::repository::project_repository::ProjectRepository;
+use crate::repository::project_tag_repository::ProjectTagRepository;
+use crate::repository::project_file_repository::ProjectFileRepository;
 pub struct MainView {
     config: Config,
     db_manager: DbManager,
@@ -50,12 +53,13 @@ pub enum Message {
 impl MainView {
     pub fn new(config: Config) -> Self {
         let db_manager = ThreeDManager::setup_db_connection();
+        let tag_list = ProjectTagRepository::new(db_manager.get_connection()).get_tags();
         let mut main_view = MainView {
             config,
             db_manager,
             project_list: vec![],
             name_filter: "".to_string(),
-            tag_list: vec![],
+            tag_list,
             filter_tags: vec![],
             stl_thumb: ThreeDManager::get_stl_thumb(),
         };
@@ -202,7 +206,7 @@ impl MainView {
         if self.filter_tags.len() > 0 {
             filter_tags = Some(self.filter_tags.clone());
         }
-        self.project_list = self.db_manager.get_filtered_projects(option_filter, None, filter_tags);
+        self.project_list = ProjectRepository::new(self.db_manager.get_connection()).get_filtered_projects(option_filter, None ,filter_tags);
         info!("There are {} projects", self.project_list.len());
     }
 
@@ -223,7 +227,7 @@ impl MainView {
                         entry.path().to_str().unwrap().to_string(),
                         "".to_string()
                     );
-                    self.db_manager.update_project_files(project.clone(),  project.get_file_system_files());
+                    self.update_project_files(project.clone(),  project.get_file_system_files());
                 }
                 debug!("Scanning Project directory {}. The Project Name is {}", entry.path().display(), entry.file_name().display());
             }
@@ -240,13 +244,29 @@ impl MainView {
             files: vec![],
             sources: vec![],
         };
-        self.db_manager.create_project(new_project).unwrap()
+        ProjectRepository::new(self.db_manager.get_connection()).create(new_project).unwrap()
     }
     fn does_project_with_path_exist(&mut self, project_path: String) -> bool {
-        let project_list = self.db_manager.get_filtered_projects(None,Some(project_path),None);
+        let project_list = ProjectRepository::new(self.db_manager.get_connection()).get_filtered_projects(None, Some(project_path), None);
         if project_list.len() > 0 {
             return true
         }
         false
+    }
+    pub fn update_project_files(&self, project: Project, file_system_files: Vec<String>) {
+        let project_file_repository = ProjectFileRepository::new(self.db_manager.get_connection());
+        let existing_files = project_file_repository.get_files_for_project(project.clone()).iter().map(|f| f.path.clone()).collect::<Vec<String>>();
+
+        //files_query_results.
+        let files_to_add: Vec<_> = file_system_files.clone().into_iter().filter(|item| !existing_files.contains(item)).collect();
+        let files_to_delete: Vec<_> = existing_files.clone().into_iter().filter(|item| !file_system_files.contains(item)).collect();
+        for path in files_to_add.clone() {
+            let _ = project_file_repository.create(ProjectFile::new(project.clone(), path.clone()));
+        };
+        for path in files_to_delete.clone() {
+            project_file_repository.delete_by_project_and_path(project.clone(), path.clone());
+        };
+        info!("{} added files: {:?}", project.name, files_to_add);
+        info!("{} deleted files: {:?}", project.name, files_to_delete);
     }
 }

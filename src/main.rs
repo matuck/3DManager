@@ -17,6 +17,7 @@
 
 pub mod config;
 pub mod models;
+pub mod repository;
 mod db_manager;
 mod pages;
 

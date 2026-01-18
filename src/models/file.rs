@@ -20,6 +20,8 @@ use regex::Regex;
 use path::{PathBuf, Path};
 use fs::create_dir_all;
 use std::process::Stdio;
+use crate::models;
+use models::project::Project;
 #[allow(unused)]
 use log::{error, warn, info, debug, trace};
 
@@ -33,6 +35,16 @@ pub struct ProjectFile {
 }
 
 impl ProjectFile {
+    pub fn new(project :Project, path: String) -> ProjectFile {
+        ProjectFile{
+            id: 0,
+            path,
+            notes: Some("".to_string()),
+            project_id: project.id,
+            default: false,
+        }
+
+    }
     pub fn get_image_path(&self, stl_thumb_path: String) -> String {
         if self.is_image_type() {
             return self.path.clone();
