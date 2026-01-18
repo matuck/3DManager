@@ -15,25 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-use serde::{Serialize, Deserialize};
-use crate::models;
-use models::project::Project;
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ProjectSource {
-    pub id: i32,
-    pub name: String,
-    pub url: String,
-    pub project_id: i32,
-}
-
-impl ProjectSource {
-    pub fn new(name: String, url: String, project: Project) -> ProjectSource {
-        ProjectSource{
-            id: 0,
-            name,
-            url,
-            project_id: project.id,
-        }
-    }
-}
+pub mod project_repository;
+pub mod project_file_repository;
+pub mod project_source_repository;
+pub mod project_tag_repository;
