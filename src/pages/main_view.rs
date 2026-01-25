@@ -16,7 +16,7 @@
  */
 use std::fs;
 use std::path::Path;
-use iced::{Background, Fill, Length, Element};
+use iced::{Background, Fill, Length, Element, padding};
 use iced::widget::{button, text, container, Container, row, column, text_input, Text, scrollable, image};
 use iced::alignment::{Horizontal};
 use iced::widget::text::Alignment;
@@ -177,20 +177,21 @@ impl MainView {
             };
 
             project_grid = project_grid.push(
-                button(
+                container(
+                    button(
                        container(
                            column![
-                               text(project.name.to_string()).align_x(Alignment::Center).width(Fill),
+                               text(project.name.to_string()).wrapping(iced::widget::text::Wrapping::WordOrGlyph).align_x(Alignment::Center).width(Fill),
                                image(image_path)
                            ],
                        )
                            .align_x(Horizontal::Center)
-                )
+                    )
+                    .style(ThreeDManager::rounded_button)
                     .on_press(Message::SelectProject(project.clone()))
                     .height(Length::Fixed(200.0))
                     .width(Length::Fixed(200.0))
-                    .style(button::text)
-
+                ).padding(5)
             );
         }
         project_panel = project_panel.push(scrollable(project_grid.wrap()));
